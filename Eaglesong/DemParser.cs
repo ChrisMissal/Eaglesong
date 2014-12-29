@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace Eaglesong
 {
-    class DemParser
+    public class DemParser
     {
         private const ulong COMPRESSED_KIND_MASK = 0x70;
 
