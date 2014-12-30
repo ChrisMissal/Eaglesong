@@ -54,6 +54,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BitStream.cs" />
     <Compile Include="DemParser.cs" />
     <Compile Include="dota2proto.cs" />
     <Compile Include="dota2protoExtension.cs" />
