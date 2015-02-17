@@ -12,12 +12,14 @@ namespace dota2
     /// </summary>
     public interface BaseWithEmbedded
     {
+        [Newtonsoft.Json.JsonIgnore]
         byte[] data { get; set; }
         object[] EmbeddedMessages { get; set; }
     }
 
     public partial class CDemoFullPacket : BaseWithEmbedded
     {
+        [Newtonsoft.Json.JsonIgnore]
         public byte[] data
         {
             get
@@ -44,7 +46,7 @@ namespace dota2
         [OnDeserialized]
         internal void OnDeserialized(StreamingContext context)
         {
-            this.packet.OnDeserialized(context);
+            //this.packet.OnDeserialized(context);
         }
     }
 
@@ -56,6 +58,7 @@ namespace dota2
         internal void OnDeserialized(StreamingContext context)
         {
             this.EmbeddedMessages = Eaglesong.DemParser.ParseEmbeddedMessages(this.data);
+            //this.data = null;
         }
     }
 
@@ -67,6 +70,7 @@ namespace dota2
         internal void OnDeserialized(StreamingContext context)
         {
             this.EmbeddedMessages = Eaglesong.DemParser.ParseEmbeddedMessages(this.data);
+            //this.data = null;
         }
     }
 
@@ -113,6 +117,38 @@ namespace dota2
         internal void OnDeserialized(StreamingContext context)
         {
             this.EmbeddedMessages = Eaglesong.DemParser.ParseEmbeddedMessages(this.data);
+            this.data = null;
+        }
+    }
+
+    public partial class CSVCMsg_GameEvent
+    {
+        public partial class key_t
+        {
+            public object Value
+            {
+                get
+                {
+                    switch (this.type)
+                    {
+                        case 1:
+                            return this.val_string;
+                        case 2:
+                            return this.val_float;
+                        case 3:
+                            return this.val_long;
+                        case 4:
+                            return this.val_short;
+                        case 5:
+                            return this.val_byte;
+                        case 6:
+                            return this.val_bool;
+                        case 7:
+                            return this.val_uint64;
+                    }
+                    throw new InvalidDataException("Invalid Key Type: " + this.type);
+                }
+            }
         }
     }
 }

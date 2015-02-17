@@ -346,7 +346,7 @@ namespace dota2
         private byte[] _data = null;
         [global::ProtoBuf.ProtoMember(3, IsRequired = false, Name = @"data", DataFormat = global::ProtoBuf.DataFormat.Default)]
         [global::System.ComponentModel.DefaultValue(null)]
-        public byte[] data
+        [Newtonsoft.Json.JsonIgnore]public byte[] data
         {
             get { return _data; }
             set { _data = value; }
@@ -390,7 +390,7 @@ namespace dota2
         private byte[] _data = null;
         [global::ProtoBuf.ProtoMember(1, IsRequired = false, Name = @"data", DataFormat = global::ProtoBuf.DataFormat.Default)]
         [global::System.ComponentModel.DefaultValue(null)]
-        public byte[] data
+        [Newtonsoft.Json.JsonIgnore]public byte[] data
         {
             get { return _data; }
             set { _data = value; }
@@ -460,7 +460,7 @@ namespace dota2
         private byte[] _data = null;
         [global::ProtoBuf.ProtoMember(1, IsRequired = false, Name = @"data", DataFormat = global::ProtoBuf.DataFormat.Default)]
         [global::System.ComponentModel.DefaultValue(null)]
-        public byte[] data
+        [Newtonsoft.Json.JsonIgnore]public byte[] data
         {
             get { return _data; }
             set { _data = value; }
@@ -537,7 +537,7 @@ namespace dota2
         private byte[] _data = null;
         [global::ProtoBuf.ProtoMember(2, IsRequired = false, Name = @"data", DataFormat = global::ProtoBuf.DataFormat.Default)]
         [global::System.ComponentModel.DefaultValue(null)]
-        public byte[] data
+        [Newtonsoft.Json.JsonIgnore]public byte[] data
         {
             get { return _data; }
             set { _data = value; }
@@ -592,7 +592,7 @@ namespace dota2
             private byte[] _data = null;
             [global::ProtoBuf.ProtoMember(2, IsRequired = false, Name = @"data", DataFormat = global::ProtoBuf.DataFormat.Default)]
             [global::System.ComponentModel.DefaultValue(null)]
-            public byte[] data
+            [Newtonsoft.Json.JsonIgnore]public byte[] data
             {
                 get { return _data; }
                 set { _data = value; }
@@ -673,7 +673,7 @@ namespace dota2
         private byte[] _data = null;
         [global::ProtoBuf.ProtoMember(2, IsRequired = false, Name = @"data", DataFormat = global::ProtoBuf.DataFormat.Default)]
         [global::System.ComponentModel.DefaultValue(null)]
-        public byte[] data
+        [Newtonsoft.Json.JsonIgnore]public byte[] data
         {
             get { return _data; }
             set { _data = value; }
@@ -4286,7 +4286,7 @@ namespace dota2
         private byte[] _data = null;
         [global::ProtoBuf.ProtoMember(3, IsRequired = false, Name = @"data", DataFormat = global::ProtoBuf.DataFormat.Default)]
         [global::System.ComponentModel.DefaultValue(null)]
-        public byte[] data
+        [Newtonsoft.Json.JsonIgnore]public byte[] data
         {
             get { return _data; }
             set { _data = value; }
@@ -4304,7 +4304,7 @@ namespace dota2
         private byte[] _data = null;
         [global::ProtoBuf.ProtoMember(1, IsRequired = false, Name = @"data", DataFormat = global::ProtoBuf.DataFormat.Default)]
         [global::System.ComponentModel.DefaultValue(null)]
-        public byte[] data
+        [Newtonsoft.Json.JsonIgnore]public byte[] data
         {
             get { return _data; }
             set { _data = value; }
@@ -4517,7 +4517,7 @@ namespace dota2
         private byte[] _data = null;
         [global::ProtoBuf.ProtoMember(2, IsRequired = false, Name = @"data", DataFormat = global::ProtoBuf.DataFormat.Default)]
         [global::System.ComponentModel.DefaultValue(null)]
-        public byte[] data
+        [Newtonsoft.Json.JsonIgnore]public byte[] data
         {
             get { return _data; }
             set { _data = value; }
@@ -5568,6 +5568,7 @@ namespace dota2
         private byte[] _string_data = null;
         [global::ProtoBuf.ProtoMember(8, IsRequired = false, Name = @"string_data", DataFormat = global::ProtoBuf.DataFormat.Default)]
         [global::System.ComponentModel.DefaultValue(null)]
+        [Newtonsoft.Json.JsonIgnore]
         public byte[] string_data
         {
             get { return _string_data; }
@@ -5602,6 +5603,7 @@ namespace dota2
         private byte[] _string_data = null;
         [global::ProtoBuf.ProtoMember(3, IsRequired = false, Name = @"string_data", DataFormat = global::ProtoBuf.DataFormat.Default)]
         [global::System.ComponentModel.DefaultValue(null)]
+        [Newtonsoft.Json.JsonIgnore]
         public byte[] string_data
         {
             get { return _string_data; }
@@ -5728,7 +5730,7 @@ namespace dota2
         private byte[] _data = null;
         [global::ProtoBuf.ProtoMember(4, IsRequired = false, Name = @"data", DataFormat = global::ProtoBuf.DataFormat.Default)]
         [global::System.ComponentModel.DefaultValue(null)]
-        public byte[] data
+        [Newtonsoft.Json.JsonIgnore]public byte[] data
         {
             get { return _data; }
             set { _data = value; }
@@ -5835,7 +5837,9 @@ namespace dota2
     [global::System.Serializable, global::ProtoBuf.ProtoContract(Name = @"CSVCMsg_GameEvent")]
     public partial class CSVCMsg_GameEvent : global::ProtoBuf.IExtensible
     {
-        public CSVCMsg_GameEvent() { }
+        public CSVCMsg_GameEvent() {
+        
+        }
 
         private string _event_name = "";
         [global::ProtoBuf.ProtoMember(1, IsRequired = false, Name = @"event_name", DataFormat = global::ProtoBuf.DataFormat.Default)]

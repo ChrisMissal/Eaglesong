@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using System.IO;
 
 namespace Eaglesong
 {
@@ -33,9 +34,9 @@ namespace Eaglesong
         }
 
         /// <summary>
-        /// Reads in the specified number of bits and converts the bits to a string
+        /// Reads in the specified number of bytes and converts the bytes to a string, it will stop reading if it encounters a null byte
         /// </summary>
-        /// <param name="count"></param>
+        /// <param name="count">the number of bytes to read (not bits)</param>
         /// <returns></returns>
         public string ReadString(int count)
         {
@@ -44,17 +45,59 @@ namespace Eaglesong
             int b = 0, bpos = 0;
             for (int i = 0; i < count; i++)
             {
-                if (i % 8 == 0)
+                b = this.ReadBits(8);
+                if (b == 0)
                 {
-                    res += Convert.ToChar(b);
-                    b = 0;
-                    bpos = 7;
+                    break;
                 }
-
-                b |= (this.Bits[this.Position++] ? 1 : 0) << bpos--;
+                else
+                {
+                    res += (char)b;
+                }
             }
 
             return res;
+        }
+
+        /// <summary>
+        /// Reads in a single bit as a bool
+        /// </summary>
+        /// <returns></returns>
+        public bool ReadBool()
+        {
+            return this.Bits[this.Position++];
+        }
+
+        /// <summary>
+        /// Seeks through the stream relative to the origin
+        /// </summary>
+        /// <param name="offset"></param>
+        /// <param name="origin"></param>
+        public override void Seek(long offset, SeekOrigin origin)
+        {
+            long start = 0;
+            switch (origin)
+            {
+                case SeekOrigin.Begin:
+                    start = 0;
+                    break;
+
+                case SeekOrigin.Current:
+                    start = this.Position;
+                    break;
+
+                case SeekOrigin.End:
+                    start = this.Bits.Length;
+                    break;
+            }
+
+            int newPos = (int)(start + offset);
+            if (newPos > this.Bits.Length)
+            {
+                throw new ArgumentException("Seeking greater than stream length.");
+            }
+
+            this.Position = newPos;
         }
     }
 }

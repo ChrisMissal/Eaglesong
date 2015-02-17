@@ -9,9 +9,13 @@ namespace Eaglesong
     {
         private const ulong COMPRESSED_KIND_MASK = 0x70;
 
-        private static LinkedList<object> Messages = new LinkedList<object>();
+        private Dictionary<ParserPhase, LinkedList<object>> Messages = new Dictionary<ParserPhase, LinkedList<object>>();
 
-        public static LinkedList<Object> Read(string fileName)
+        private Dictionary<string, bool> StringTables = new Dictionary<string, bool>();
+
+        public ParserPhase Phase { get; private set; }
+
+        public Dictionary<ParserPhase, LinkedList<object>> Read(string fileName)
         {
             using (FileStream fs = new FileStream(fileName, FileMode.Open, FileAccess.Read))
             {
@@ -30,10 +34,34 @@ namespace Eaglesong
                 }
                 int summaryOffset = BitConverter.ToInt32(buf, 0);
 
+                this.Phase = ParserPhase.Prologue;
+                this.Messages[this.Phase] = new LinkedList<object>();
+
                 while (fs.Position < fs.Length)
                 {
                     var msg = ParseMessage(fs);
-                    Messages.AddLast(msg);
+                    if (msg is dota2.CDemoSyncTick)
+                    {
+                        this.Phase = ParserPhase.Match;
+                        this.Messages[this.Phase] = new LinkedList<object>();
+                    }
+                    else if (msg is dota2.CDemoStop)
+                    {
+                        this.Phase = ParserPhase.Epilogue;
+                        this.Messages[this.Phase] = new LinkedList<object>();
+                    }
+                    else if (msg is dota2.BaseWithEmbedded)
+                    {
+                        dota2.BaseWithEmbedded msgBase = msg as dota2.BaseWithEmbedded;
+                        foreach (object inner in msgBase.EmbeddedMessages)
+                        {
+                            if (inner is dota2.CSVCMsg_CreateStringTable)
+                            {
+                                var x = new StringTable(inner as dota2.CSVCMsg_CreateStringTable);
+                            }
+                        }
+                    }
+                    Messages[this.Phase].AddLast(msg);
                 }
             }
 
@@ -85,7 +113,7 @@ namespace Eaglesong
         /// </summary>
         /// <param name="fs"></param>
         /// <returns></returns>
-        private static object ParseMessage(FileStream fs)
+        public object ParseMessage(FileStream fs)
         {
             ulong kind = ReadVarInt(fs);
             ulong tick = ReadVarInt(fs);
@@ -123,7 +151,13 @@ namespace Eaglesong
                 byte[] buf = new byte[size];
                 fs.Read(buf, 0, (int)size);
 
+                if (EmbeddedTypeMap[kind] == typeof(dota2.CSVCMsg_GameEvent))
+                {
+                    Console.Write("");
+                }
+
                 object message = ProtoBuf.Meta.RuntimeTypeModel.Default.Deserialize(new MemoryStream(buf), null, EmbeddedTypeMap[kind]);
+
                 messages.AddLast(message);
             }
 
@@ -161,7 +195,7 @@ namespace Eaglesong
         }
 
 
-        private static void PrintMessage(object message, ulong kind, ulong tick, ulong size, byte[] buf, bool isCompressed)
+        private void PrintMessage(object message, ulong kind, ulong tick, ulong size, byte[] buf, bool isCompressed)
         {
 #if DEBUG
             Console.WriteLine("==== #{0}: Tick:{1} '{2}' Size:{3} UncompressedSize:{4} ====", Messages.Count, tick, BaseTypeMap[kind], size, isCompressed ? buf.Length : 0);
@@ -215,6 +249,10 @@ namespace Eaglesong
                             int j = 0;
                             foreach (dota2.CDemoStringTables.items_t item in table.items)
                             {
+                                if (item.data == null)
+                                {
+                                    item.data = new byte[0];
+                                }
                                 Console.WriteLine("    #{0} '{1}' ({2} bytes)", j++, item.str, item.data.Length); 
                             }
                         }
@@ -231,7 +269,7 @@ namespace Eaglesong
 #endif
         }
 
-        private static void PrintEmbeddedMessage(dota2.BaseWithEmbedded message)
+        private void PrintEmbeddedMessage(dota2.BaseWithEmbedded message)
         {
 #if DEBUG
             foreach (object embedded in message.EmbeddedMessages)
