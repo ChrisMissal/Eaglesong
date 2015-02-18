@@ -9,41 +9,85 @@ namespace Eaglesong
     /// </summary>
     class BitStream
     {
+        /// <summary>
+        /// The bits in the stream
+        /// </summary>
         public BitArray Bits { get; private set; }
 
+        /// <summary>
+        /// The current position
+        /// </summary>
         public int Position { get; private set; }
 
+        /// <summary>
+        /// The hidden function used in the ReadBits processor to determine the bit order
+        /// </summary>
+        private Func<int, int, int> indexToBitPos;
+        
         public BitStream(byte[] bytes)
         {
             this.Bits = new BitArray(bytes);
             this.Position = 0;
+
+            // we need to reverse the bit order for our bit reader if the machine isn't little endian.
+            this.indexToBitPos = delegate(int count, int index)
+            {
+                return index;
+            };
+            if (!BitConverter.IsLittleEndian)
+            {
+                this.indexToBitPos = delegate(int count, int index)
+                {
+                    return count - index - 1;
+                };
+            }
         }
 
         /// <summary>
         /// Reads in the specified number of bits and converts the bits to an int
         /// </summary>
-        /// <param name="count"></param>
+        /// <param name="bitCount"></param>
         /// <returns></returns>
-        public int ReadBits(int count)
+        public int ReadBits(int bitCount)
         {
             int res = 0;
-            for (int i = 0; i < count; i++) {
-                res |= (this.Bits[this.Position++] ? 1 : 0) << (count - i - 1);
+            for (int i = 0; i < bitCount; i++) {
+                res |= (this.Bits[this.Position++] ? 1 : 0) << i;
             }
             return res;
         }
 
         /// <summary>
+        /// Reads in the specified 
+        /// </summary>
+        /// <param name="bitCount"></param>
+        /// <returns></returns>
+        public byte[] ReadBytes(int bitCount)
+        {
+            byte[] ret = new byte[bitCount / 8];
+            for (int i = 0; i < ret.Length; i++)
+            {
+                ret[i] = 0;
+                for (int j = 0; j < 8; j++)
+                {
+                    ret[i] |= (byte) ((this.Bits[this.Position++] ? 1 : 0) << this.indexToBitPos(8, j));
+                }
+            }
+
+            return ret;
+        }
+
+        /// <summary>
         /// Reads in the specified number of bytes and converts the bytes to a string, it will stop reading if it encounters a null byte
         /// </summary>
-        /// <param name="count">the number of bytes to read (not bits)</param>
+        /// <param name="byteCount">the number of bytes to read (not bits)</param>
         /// <returns></returns>
-        public string ReadString(int count)
+        public string ReadString(int byteCount)
         {
             string res = "";
 
             int b = 0, bpos = 0;
-            for (int i = 0; i < count; i++)
+            for (int i = 0; i < byteCount; i++)
             {
                 b = this.ReadBits(8);
                 if (b == 0)
@@ -71,9 +115,9 @@ namespace Eaglesong
         /// <summary>
         /// Seeks through the stream relative to the origin
         /// </summary>
-        /// <param name="offset"></param>
+        /// <param name="bitOffset"></param>
         /// <param name="origin"></param>
-        public override void Seek(long offset, SeekOrigin origin)
+        public void Seek(long bitOffset, SeekOrigin origin)
         {
             long start = 0;
             switch (origin)
@@ -91,7 +135,7 @@ namespace Eaglesong
                     break;
             }
 
-            int newPos = (int)(start + offset);
+            int newPos = (int)(start + bitOffset);
             if (newPos > this.Bits.Length)
             {
                 throw new ArgumentException("Seeking greater than stream length.");

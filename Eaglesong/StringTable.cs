@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -7,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Eaglesong
 {
-    class StringTable
+    public class StringTable : IEnumerable
     {
         public readonly float MaxEntries;
         public readonly int NumEntries;
@@ -19,6 +20,7 @@ namespace Eaglesong
 
         private const int KeyHistorySize = 32;
         private const int MaxNameLength = 0x400;
+        private Dictionary<int, StringTableRow> Rows;
 
         public StringTable(dota2.CSVCMsg_CreateStringTable msg)
         {
@@ -29,6 +31,8 @@ namespace Eaglesong
             this.UserDataSizeBits = msg.user_data_size_bits;
             this.UserDataFixedSize = msg.user_data_fixed_size;
             this.Flags = msg.flags;
+
+            this.Create(msg.string_data);
         }
 
         private void Create(byte[] string_data)
@@ -36,14 +40,14 @@ namespace Eaglesong
             BitStream stream = new BitStream(string_data);
 
             int bitsPerIndex = (int)Math.Log(this.MaxEntries / Math.Log(2));
-            List<string> keyHistory = new List<string>(32);
+            KeyHistory keyHistory = new KeyHistory();
             int keyHistoryCount = 0;
 
-            Dictionary<int, string> map = new Dictionary<int, string>();
+            Dictionary<int, StringTableRow> map = new Dictionary<int, StringTableRow>();
 
             bool mysteryFlag = stream.ReadBool();
 
-            int index = 0;
+            int index = -1;
             while (map.Count < this.NumEntries)
             {
                 // figure out if we are consecutive indexing or not
@@ -71,20 +75,49 @@ namespace Eaglesong
 
                         if (basis > keyHistoryCount)
                         {
-                            // the key requested is invalid, so just use the 
+                            // the key requested is invalid, so just use the data provided
                             name += stream.ReadString(StringTable.MaxNameLength);
                         }
                         else
                         {
                             string s = keyHistory[basis];
+                            if (length > s.Length)
+                            {
+                                name += s + stream.ReadString(StringTable.MaxNameLength);
+                            }
+                            else
+                            {
+                                name += s.Substring(0, length) + stream.ReadString(StringTable.MaxNameLength - length);
+                            }
                         }
                     }
                     else
                     {
                         name += stream.ReadString(StringTable.MaxNameLength);
                     }
+                    // add the key to the history
+                    keyHistory.Push(name);
                 }
+
+                // read the inner value
+                byte[] value = null;
+                if (stream.ReadBool()) {
+                    int bitLength = 0;
+                    if (this.UserDataFixedSize)
+                    {
+                        bitLength = this.UserDataSizeBits;
+                    }
+                    else
+                    {
+                        bitLength = stream.ReadBits(14) * 8;
+                    }
+
+                    value = stream.ReadBytes(bitLength);
+                }
+                map[index] = new StringTableRow(name, value);
             }
+
+            this.Rows = map;
         }
 
         public void Update(dota2.CSVCMsg_UpdateStringTable msg)
@@ -161,6 +194,31 @@ namespace Eaglesong
                     return (this.ptr + i - 1) % StringTable.KeyHistorySize;
                 }
             }
+        }
+
+        public StringTableRow this[int i]
+        {
+            get
+            {
+                return this.Rows[i];
+            }
+        }
+
+        public IEnumerator GetEnumerator()
+        {
+            return this.Rows.GetEnumerator();
+        }
+    }
+
+    public class StringTableRow
+    {
+        public string Name { get; private set; }
+        public byte[] Value { get; private set; }
+
+        public StringTableRow(string name, byte[] value)
+        {
+            this.Name = name;
+            this.Value = value;
         }
     }
 }

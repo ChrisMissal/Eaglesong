@@ -11,7 +11,7 @@ namespace Eaglesong
 
         private Dictionary<ParserPhase, LinkedList<object>> Messages = new Dictionary<ParserPhase, LinkedList<object>>();
 
-        private Dictionary<string, bool> StringTables = new Dictionary<string, bool>();
+        private Dictionary<string, StringTable> StringTables = new Dictionary<string, StringTable>();
 
         public ParserPhase Phase { get; private set; }
 
@@ -57,7 +57,8 @@ namespace Eaglesong
                         {
                             if (inner is dota2.CSVCMsg_CreateStringTable)
                             {
-                                var x = new StringTable(inner as dota2.CSVCMsg_CreateStringTable);
+                                StringTable t = new StringTable(inner as dota2.CSVCMsg_CreateStringTable);
+                                this.StringTables[t.Name] = t;
                             }
                         }
                     }
