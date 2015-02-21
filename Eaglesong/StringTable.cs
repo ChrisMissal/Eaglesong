@@ -191,7 +191,7 @@ namespace Eaglesong
                 }
                 else
                 {
-                    return (this.ptr + i - 1) % StringTable.KeyHistorySize;
+                    return (StringTable.KeyHistorySize + (this.ptr + i - 1)) % StringTable.KeyHistorySize;
                 }
             }
         }
@@ -208,6 +208,11 @@ namespace Eaglesong
         {
             return this.Rows.GetEnumerator();
         }
+
+        public override string ToString()
+        {
+            return String.Format("[StringTable(\"{0}\", {1})", this.Name, this.Rows.Count);
+        }
     }
 
     public class StringTableRow
@@ -219,6 +224,16 @@ namespace Eaglesong
         {
             this.Name = name;
             this.Value = value;
+        }
+
+        public override string ToString()
+        {
+            int len = 0;
+            if (this.Value != null)
+            {
+                len = this.Value.Length;
+            }
+            return String.Format("[StringTableRow(\"{0}\", {1})]", this.Name, len);
         }
     }
 }

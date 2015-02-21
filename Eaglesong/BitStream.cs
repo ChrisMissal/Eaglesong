@@ -64,12 +64,15 @@ namespace Eaglesong
         /// <returns></returns>
         public byte[] ReadBytes(int bitCount)
         {
-            byte[] ret = new byte[bitCount / 8];
+            byte[] ret = new byte[Math.Max(bitCount / 8, 1)];
+            int bitsRead = 0;
             for (int i = 0; i < ret.Length; i++)
             {
                 ret[i] = 0;
-                for (int j = 0; j < 8; j++)
+                int max = Math.Min(8, bitCount - bitsRead);
+                for (int j = 0; j < max; j++)
                 {
+                    bitsRead++;
                     ret[i] |= (byte) ((this.Bits[this.Position++] ? 1 : 0) << this.indexToBitPos(8, j));
                 }
             }
