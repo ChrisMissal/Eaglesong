@@ -35,11 +35,40 @@ namespace Eaglesong
             this.Create(msg.string_data);
         }
 
+        /// <summary>
+        /// Creates the string table rows from the given data
+        /// </summary>
+        /// <param name="string_data"></param>
         private void Create(byte[] string_data)
+        {
+            this.Rows = this.ParseTable(string_data, this.NumEntries);
+        }
+
+        /// <summary>
+        /// Updates the string table with the given packet
+        /// </summary>
+        /// <param name="msg"></param>
+        public void Update(dota2.CSVCMsg_UpdateStringTable msg)
+        {
+            Dictionary<int, StringTableRow> rows = this.ParseTable(msg.string_data, msg.num_changed_entries);
+
+            foreach (KeyValuePair<int, StringTableRow> kvp in rows)
+            {
+                this[kvp.Key] = rows[kvp.Key];
+            }
+        }
+
+        /// <summary>
+        /// Parses the string table out of the binary packet
+        /// </summary>
+        /// <param name="string_data"></param>
+        /// <param name="numEntries"></param>
+        /// <returns></returns>
+        private Dictionary<int, StringTableRow> ParseTable(byte[] string_data, int numEntries)
         {
             BitStream stream = new BitStream(string_data);
 
-            int bitsPerIndex = (int)Math.Log(this.MaxEntries / Math.Log(2));
+            int bitsPerIndex = (int)(Math.Log(this.MaxEntries) / Math.Log(2));
             KeyHistory keyHistory = new KeyHistory();
 
             Dictionary<int, StringTableRow> map = new Dictionary<int, StringTableRow>();
@@ -47,7 +76,7 @@ namespace Eaglesong
             bool mysteryFlag = stream.ReadBool();
 
             int index = -1;
-            while (map.Count < this.NumEntries)
+            while (map.Count < numEntries)
             {
                 // figure out if we are consecutive indexing or not
                 if (stream.ReadBool())
@@ -125,12 +154,29 @@ namespace Eaglesong
                 map[index] = new StringTableRow(name, value);
             }
 
-            this.Rows = map;
+            return map;
         }
 
-        public void Update(dota2.CSVCMsg_UpdateStringTable msg)
+        public StringTableRow this[int i]
         {
-            // TODO
+            get
+            {
+                return this.Rows[i];
+            }
+            private set
+            {
+                this.Rows[i] = value;
+            }
+        }
+
+        public IEnumerator GetEnumerator()
+        {
+            return this.Rows.GetEnumerator();
+        }
+
+        public override string ToString()
+        {
+            return String.Format("[StringTable(\"{0}\", {1})", this.Name, this.Rows.Count);
         }
 
         private class KeyHistory
@@ -202,24 +248,6 @@ namespace Eaglesong
                     return (StringTable.KeyHistorySize + (this.ptr + i)) % StringTable.KeyHistorySize;
                 }
             }
-        }
-
-        public StringTableRow this[int i]
-        {
-            get
-            {
-                return this.Rows[i];
-            }
-        }
-
-        public IEnumerator GetEnumerator()
-        {
-            return this.Rows.GetEnumerator();
-        }
-
-        public override string ToString()
-        {
-            return String.Format("[StringTable(\"{0}\", {1})", this.Name, this.Rows.Count);
         }
     }
 
