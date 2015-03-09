@@ -41,7 +41,6 @@ namespace Eaglesong
 
             int bitsPerIndex = (int)Math.Log(this.MaxEntries / Math.Log(2));
             KeyHistory keyHistory = new KeyHistory();
-            int keyHistoryCount = 0;
 
             Dictionary<int, StringTableRow> map = new Dictionary<int, StringTableRow>();
 
@@ -70,10 +69,12 @@ namespace Eaglesong
                     // check if we're referencing the key history
                     if (stream.ReadBool())
                     {
+                        // the index of the key in history they we're using
                         int basis = stream.ReadBits(5);
+                        // the number of characters from the history key to use
                         int length = stream.ReadBits(5);
 
-                        if (basis > keyHistoryCount)
+                        if (basis > keyHistory.Length)
                         {
                             // the key requested is invalid, so just use the data provided
                             name += stream.ReadString(StringTable.MaxNameLength);
@@ -87,6 +88,13 @@ namespace Eaglesong
                             }
                             else
                             {
+                                // just use the first n characters of the history string and get the rest of the string from the stream
+                                /*
+                                 * i.e.
+                                 * keyHistory[basis] == "cfg/cpu_level_0_pc.txt"
+                                 * length = 14
+                                 * name = "cfg/cpu_level_" + *read stream* (i.e. "1_pc.txt")
+                                 */
                                 name += s.Substring(0, length) + stream.ReadString(StringTable.MaxNameLength - length);
                             }
                         }
@@ -191,7 +199,7 @@ namespace Eaglesong
                 }
                 else
                 {
-                    return (StringTable.KeyHistorySize + (this.ptr + i - 1)) % StringTable.KeyHistorySize;
+                    return (StringTable.KeyHistorySize + (this.ptr + i)) % StringTable.KeyHistorySize;
                 }
             }
         }
