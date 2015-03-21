@@ -12,17 +12,17 @@ namespace Eaglesong
         /// <summary>
         /// The bits in the stream
         /// </summary>
-        public BitArray Bits { get; private set; }
+        private BitArray Bits { get; set; }
 
         /// <summary>
         /// The current position
         /// </summary>
-        public int Position { get; private set; }
+        private int Position { get; set; }
 
         /// <summary>
         /// The hidden function used in the ReadBits processor to determine the bit order
         /// </summary>
-        private Func<int, int, int> indexToBitPos;
+        private readonly Func<int, int, int> _indexToBitPos;
         
         public BitStream(byte[] bytes)
         {
@@ -30,13 +30,13 @@ namespace Eaglesong
             this.Position = 0;
 
             // we need to reverse the bit order for our bit reader if the machine isn't little endian.
-            this.indexToBitPos = delegate(int count, int index)
+            this._indexToBitPos = delegate(int count, int index)
             {
                 return index;
             };
             if (!BitConverter.IsLittleEndian)
             {
-                this.indexToBitPos = delegate(int count, int index)
+                this._indexToBitPos = delegate(int count, int index)
                 {
                     return count - index - 1;
                 };
@@ -50,8 +50,8 @@ namespace Eaglesong
         /// <returns></returns>
         public int ReadBits(int bitCount)
         {
-            int res = 0;
-            for (int i = 0; i < bitCount; i++) {
+            var res = 0;
+            for (var i = 0; i < bitCount; i++) {
                 res |= (this.Bits[this.Position++] ? 1 : 0) << i;
             }
             return res;
@@ -64,16 +64,16 @@ namespace Eaglesong
         /// <returns></returns>
         public byte[] ReadBytes(int bitCount)
         {
-            byte[] ret = new byte[Math.Max(bitCount / 8, 1)];
-            int bitsRead = 0;
-            for (int i = 0; i < ret.Length; i++)
+            var ret = new byte[Math.Max(bitCount / 8, 1)];
+            var bitsRead = 0;
+            for (var i = 0; i < ret.Length; i++)
             {
                 ret[i] = 0;
                 int max = Math.Min(8, bitCount - bitsRead);
-                for (int j = 0; j < max; j++)
+                for (var j = 0; j < max; j++)
                 {
                     bitsRead++;
-                    ret[i] |= (byte) ((this.Bits[this.Position++] ? 1 : 0) << this.indexToBitPos(8, j));
+                    ret[i] |= (byte) ((this.Bits[this.Position++] ? 1 : 0) << this._indexToBitPos(8, j));
                 }
             }
 
@@ -87,20 +87,16 @@ namespace Eaglesong
         /// <returns></returns>
         public string ReadString(int byteCount)
         {
-            string res = "";
+            var res = "";
 
-            int b = 0, bpos = 0;
-            for (int i = 0; i < byteCount; i++)
+            for (var i = 0; i < byteCount; i++)
             {
-                b = this.ReadBits(8);
+                int b = this.ReadBits(8);
                 if (b == 0)
                 {
                     break;
                 }
-                else
-                {
-                    res += (char)b;
-                }
+                res += (char)b;
             }
 
             return res;
@@ -138,7 +134,7 @@ namespace Eaglesong
                     break;
             }
 
-            int newPos = (int)(start + bitOffset);
+            var newPos = (int)(start + bitOffset);
             if (newPos > this.Bits.Length)
             {
                 throw new ArgumentException("Seeking greater than stream length.");

@@ -1,37 +1,33 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Eaglesong
 {
     public class OrderedDictionary<T> : IEnumerable
     {
-        private Dictionary<string, T> list = new Dictionary<string, T>();
-        private List<string> keys = new List<string>();
+        private readonly Dictionary<string, T> _list = new Dictionary<string, T>();
+        private readonly List<string> _keys = new List<string>();
 
         public void Add(string key, T item)
         {
-            if (!this.list.ContainsKey(key))
+            if (!this._list.ContainsKey(key))
             {
-                this.keys.Add(key);
+                this._keys.Add(key);
             }
-            this.list[key] = item;
+            this._list[key] = item;
         }
         public T this[int i]
         {
             get
             {
-                return this.list[keys[i]];
+                return this._list[this._keys[i]];
             }
         }
         public T this[string key]
         {
             get
             {
-                return this.list[key];
+                return this._list[key];
             }
             set
             {
@@ -45,10 +41,7 @@ namespace Eaglesong
         /// <returns></returns>
         public IEnumerator GetEnumerator()
         {
-            foreach (string key in this.keys)
-            {
-                yield return this.list[key];
-            }
+            return this._keys.GetEnumerator();
         }
     }
 }

@@ -2,9 +2,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Eaglesong
 {
@@ -20,7 +17,7 @@ namespace Eaglesong
 
         private const int KeyHistorySize = 32;
         private const int MaxNameLength = 0x400;
-        private Dictionary<int, StringTableRow> Rows;
+        private Dictionary<int, StringTableRow> _rows;
 
         public StringTable(dota2.CSVCMsg_CreateStringTable msg)
         {
@@ -38,10 +35,10 @@ namespace Eaglesong
         /// <summary>
         /// Creates the string table rows from the given data
         /// </summary>
-        /// <param name="string_data"></param>
-        private void Create(byte[] string_data)
+        /// <param name="stringData"></param>
+        private void Create(byte[] stringData)
         {
-            this.Rows = this.ParseTable(string_data, this.NumEntries);
+            this._rows = this.ParseTable(stringData, this.NumEntries);
         }
 
         /// <summary>
@@ -61,17 +58,17 @@ namespace Eaglesong
         /// <summary>
         /// Parses the string table out of the binary packet
         /// </summary>
-        /// <param name="string_data"></param>
+        /// <param name="stringData"></param>
         /// <param name="numEntries"></param>
         /// <returns></returns>
-        private Dictionary<int, StringTableRow> ParseTable(byte[] string_data, int numEntries)
+        private Dictionary<int, StringTableRow> ParseTable(byte[] stringData, int numEntries)
         {
-            BitStream stream = new BitStream(string_data);
+            var stream = new BitStream(stringData);
 
-            int bitsPerIndex = (int)(Math.Log(this.MaxEntries) / Math.Log(2));
-            KeyHistory keyHistory = new KeyHistory();
+            var bitsPerIndex = (int)(Math.Log(this.MaxEntries) / Math.Log(2));
+            var keyHistory = new KeyHistory();
 
-            Dictionary<int, StringTableRow> map = new Dictionary<int, StringTableRow>();
+            var map = new Dictionary<int, StringTableRow>();
 
             bool mysteryFlag = stream.ReadBool();
 
@@ -88,7 +85,7 @@ namespace Eaglesong
                     index = stream.ReadBits(bitsPerIndex);
                 }
 
-                string name = "";
+                var name = "";
                 if (stream.ReadBool())
                 {
                     if (mysteryFlag && stream.ReadBool())
@@ -139,7 +136,7 @@ namespace Eaglesong
                 // read the inner value
                 byte[] value = null;
                 if (stream.ReadBool()) {
-                    int bitLength = 0;
+                    int bitLength;
                     if (this.UserDataFixedSize)
                     {
                         bitLength = this.UserDataSizeBits;
@@ -161,22 +158,22 @@ namespace Eaglesong
         {
             get
             {
-                return this.Rows[i];
+                return this._rows[i];
             }
             private set
             {
-                this.Rows[i] = value;
+                this._rows[i] = value;
             }
         }
 
         public IEnumerator GetEnumerator()
         {
-            return this.Rows.GetEnumerator();
+            return this._rows.GetEnumerator();
         }
 
         public override string ToString()
         {
-            return String.Format("[StringTable(\"{0}\", {1})", this.Name, this.Rows.Count);
+            return String.Format("[StringTable(\"{0}\", {1})", this.Name, this._rows.Count);
         }
 
         private class KeyHistory
@@ -184,18 +181,18 @@ namespace Eaglesong
             /// <summary>
             /// The hidden backing array
             /// </summary>
-            private string[] arr;
+            private readonly string[] _arr;
 
             /// <summary>
             /// The pointer to the end of the history
             /// </summary>
-            private int ptr = 0;
+            private int _ptr;
 
             public int Length { get; private set; }
 
             public KeyHistory()
             {
-                this.arr = new string[StringTable.KeyHistorySize];
+                this._arr = new string[StringTable.KeyHistorySize];
                 this.Length = 0;
             }
 
@@ -205,9 +202,9 @@ namespace Eaglesong
             /// <param name="s"></param>
             public void Push(string s)
             {
-                this.arr[ptr] = s;
+                this._arr[this._ptr] = s;
 
-                ptr = (ptr + 1) % StringTable.KeyHistorySize;
+                this._ptr = (this._ptr + 1) % StringTable.KeyHistorySize;
 
                 this.Length = Math.Min(this.Length + 1, StringTable.KeyHistorySize);
             }
@@ -220,11 +217,11 @@ namespace Eaglesong
             public string this[int i] {
                 get
                 {
-                    return this.arr[this.GetIndex(i)];
+                    return this._arr[this.GetIndex(i)];
                 }
                 set
                 {
-                    this.arr[this.GetIndex(i)] = value;
+                    this._arr[this.GetIndex(i)] = value;
                 }
             }
 
@@ -245,7 +242,7 @@ namespace Eaglesong
                 }
                 else
                 {
-                    return (StringTable.KeyHistorySize + (this.ptr + i)) % StringTable.KeyHistorySize;
+                    return (StringTable.KeyHistorySize + (this._ptr + i)) % StringTable.KeyHistorySize;
                 }
             }
         }
@@ -264,7 +261,7 @@ namespace Eaglesong
 
         public override string ToString()
         {
-            int len = 0;
+            var len = 0;
             if (this.Value != null)
             {
                 len = this.Value.Length;

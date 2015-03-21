@@ -1,25 +1,25 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.IO;
+﻿using System.IO;
 using System.Runtime.Serialization;
+using Newtonsoft.Json;
 
 // Extends the auto-generated protobuf classes
+// ReSharper disable CheckNamespace
 namespace dota2
+// ReSharper restore CheckNamespace
 {
     /// <summary>
     /// an interface to required classes to make it easier to parse their embedded data
     /// </summary>
-    public interface BaseWithEmbedded
+    public interface IBaseWithEmbedded
     {
-        [Newtonsoft.Json.JsonIgnore]
+        [JsonIgnore]
         byte[] data { get; set; }
         object[] EmbeddedMessages { get; set; }
     }
 
-    public partial class CDemoFullPacket : BaseWithEmbedded
+    public partial class CDemoFullPacket : IBaseWithEmbedded
     {
-        [Newtonsoft.Json.JsonIgnore]
+        [JsonIgnore]
         public byte[] data
         {
             get
@@ -50,7 +50,7 @@ namespace dota2
         }
     }
 
-    public partial class CDemoSendTables : BaseWithEmbedded
+    public partial class CDemoSendTables : IBaseWithEmbedded
     {
         public object[] EmbeddedMessages { get; set; }
 
@@ -62,7 +62,7 @@ namespace dota2
         }
     }
 
-    public partial class CDemoPacket : BaseWithEmbedded
+    public partial class CDemoPacket : IBaseWithEmbedded
     {
         public object[] EmbeddedMessages { get; set; }
 
@@ -78,7 +78,7 @@ namespace dota2
     /// The signon packets are the same as normal packets - this is just a direct copy from the generated class
     /// </summary>
     [global::System.Serializable, global::ProtoBuf.ProtoContract(Name = @"CDemoSignonPacket")]
-    public partial class CDemoSignonPacket : BaseWithEmbedded, global::ProtoBuf.IExtensible
+    public partial class CDemoSignonPacket : IBaseWithEmbedded, global::ProtoBuf.IExtensible
     {
         public CDemoSignonPacket() { }
 

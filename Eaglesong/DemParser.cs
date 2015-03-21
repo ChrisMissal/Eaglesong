@@ -1,25 +1,24 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 
 namespace Eaglesong
 {
     public class DemParser
     {
-        private const ulong COMPRESSED_KIND_MASK = 0x70;
+        private const ulong CompressedKindMask = 0x70;
 
-        private Dictionary<ParserPhase, LinkedList<object>> Messages = new Dictionary<ParserPhase, LinkedList<object>>();
+        private readonly Dictionary<ParserPhase, LinkedList<object>> _messages = new Dictionary<ParserPhase, LinkedList<object>>();
 
-        private OrderedDictionary<StringTable> StringTables = new OrderedDictionary<StringTable>();
+        private readonly OrderedDictionary<StringTable> _stringTables = new OrderedDictionary<StringTable>();
 
         public ParserPhase Phase { get; private set; }
 
         public Dictionary<ParserPhase, LinkedList<object>> Read(string fileName)
         {
-            using (FileStream fs = new FileStream(fileName, FileMode.Open, FileAccess.Read))
+            using (var fs = new FileStream(fileName, FileMode.Open, FileAccess.Read))
             {
-                byte[] buf = new byte[8];
+                var buf = new byte[8];
                 fs.Read(buf, 0, 8);
                 if (System.Text.Encoding.UTF8.GetString(buf) != "PBUFDEM\0")
                 {
@@ -32,50 +31,50 @@ namespace Eaglesong
                 {
                     Array.Reverse(buf);
                 }
-                int summaryOffset = BitConverter.ToInt32(buf, 0);
+                //int summaryOffset = BitConverter.ToInt32(buf, 0);
 
                 this.Phase = ParserPhase.Prologue;
-                this.Messages[this.Phase] = new LinkedList<object>();
+                this._messages[this.Phase] = new LinkedList<object>();
 
                 while (fs.Position < fs.Length)
                 {
-                    var msg = ParseMessage(fs);
+                    object msg = this.ParseMessage(fs);
                     if (msg is dota2.CDemoSyncTick)
                     {
                         this.Phase = ParserPhase.Match;
-                        this.Messages[this.Phase] = new LinkedList<object>();
+                        this._messages[this.Phase] = new LinkedList<object>();
                     }
                     else if (msg is dota2.CDemoStop)
                     {
                         this.Phase = ParserPhase.Epilogue;
-                        this.Messages[this.Phase] = new LinkedList<object>();
+                        this._messages[this.Phase] = new LinkedList<object>();
                     }
-                    else if (msg is dota2.BaseWithEmbedded)
+                    else if (msg is dota2.IBaseWithEmbedded)
                     {
-                        dota2.BaseWithEmbedded msgBase = msg as dota2.BaseWithEmbedded;
+                        var msgBase = msg as dota2.IBaseWithEmbedded;
                         foreach (object inner in msgBase.EmbeddedMessages)
                         {
                             if (inner is dota2.CSVCMsg_CreateStringTable)
                             {
-                                StringTable t = new StringTable((dota2.CSVCMsg_CreateStringTable)inner);
-                                this.StringTables.Add(t.Name, t);
+                                var t = new StringTable((dota2.CSVCMsg_CreateStringTable)inner);
+                                this._stringTables.Add(t.Name, t);
                             }
                             else if (inner is dota2.CSVCMsg_UpdateStringTable)
                             {
-                                dota2.CSVCMsg_UpdateStringTable ust = (dota2.CSVCMsg_UpdateStringTable)inner;
-                                StringTable t = this.StringTables[ust.table_id];
+                                var ust = (dota2.CSVCMsg_UpdateStringTable)inner;
+                                StringTable t = this._stringTables[ust.table_id];
                                 t.Update(ust);
                             }
                         }
                     }
-                    Messages[this.Phase].AddLast(msg);
+                    this._messages[this.Phase].AddLast(msg);
                 }
             }
 
-            return Messages;
+            return this._messages;
         }
 
-        private static Dictionary<ulong, Type> BaseTypeMap = new Dictionary<ulong, Type>
+        private static readonly Dictionary<ulong, Type> BaseTypeMap = new Dictionary<ulong, Type>
         {
             {0, typeof(dota2.CDemoStop)},
             {1, typeof(dota2.CDemoFileHeader)},
@@ -93,7 +92,7 @@ namespace Eaglesong
             {13, typeof(dota2.CDemoFullPacket)},
             {14, typeof(dota2.CDemoSaveGame)}
         };
-        private static Dictionary<ulong, Type> EmbeddedTypeMap = new Dictionary<ulong, Type>
+        private static readonly Dictionary<ulong, Type> EmbeddedTypeMap = new Dictionary<ulong, Type>
         {
             {4, typeof(dota2.CNETMsg_Tick)},
             {6, typeof(dota2.CNETMsg_SetConVar)},
@@ -122,22 +121,22 @@ namespace Eaglesong
         /// <returns></returns>
         public object ParseMessage(FileStream fs)
         {
-            ulong kind = ReadVarInt(fs);
-            ulong tick = ReadVarInt(fs);
-            ulong size = ReadVarInt(fs);
-            byte[] buf = new byte[size];
+            ulong kind = DemParser.ReadVarInt(fs);
+            ulong tick = DemParser.ReadVarInt(fs);
+            ulong size = DemParser.ReadVarInt(fs);
+            var buf = new byte[size];
             fs.Read(buf, 0, (int)size);
 
             // decompress if needed
-            bool isCompressed = (kind & COMPRESSED_KIND_MASK) != 0;
+            bool isCompressed = (kind & DemParser.CompressedKindMask) != 0;
             if (isCompressed)
             {
-                kind = kind - COMPRESSED_KIND_MASK;
+                kind = kind - DemParser.CompressedKindMask;
                 buf = Snappy.SnappyCodec.Uncompress(buf);
             }
 
-            object message = ProtoBuf.Meta.RuntimeTypeModel.Default.Deserialize(new MemoryStream(buf), null, BaseTypeMap[kind]);
-            PrintMessage(message, kind, tick, size, buf, isCompressed);
+            object message = ProtoBuf.Meta.RuntimeTypeModel.Default.Deserialize(new MemoryStream(buf), null, DemParser.BaseTypeMap[kind]);
+            DemParser.PrintMessage(message, kind, tick, size, buf, isCompressed);
             return message;
         }
 
@@ -148,27 +147,22 @@ namespace Eaglesong
         /// <returns></returns>
         public static object[] ParseEmbeddedMessages(byte[] data)
         {
-            MemoryStream fs = new MemoryStream(data);
-            LinkedList<object> messages = new LinkedList<object>();
+            var fs = new MemoryStream(data);
+            var messages = new LinkedList<object>();
 
             while (fs.Position < fs.Length)
             {
-                ulong kind = ReadVarInt(fs);
-                ulong size = ReadVarInt(fs);
-                byte[] buf = new byte[size];
+                ulong kind = DemParser.ReadVarInt(fs);
+                ulong size = DemParser.ReadVarInt(fs);
+                var buf = new byte[size];
                 fs.Read(buf, 0, (int)size);
 
-                if (EmbeddedTypeMap[kind] == typeof(dota2.CSVCMsg_GameEvent))
-                {
-                    Console.Write("");
-                }
-
-                object message = ProtoBuf.Meta.RuntimeTypeModel.Default.Deserialize(new MemoryStream(buf), null, EmbeddedTypeMap[kind]);
+                object message = ProtoBuf.Meta.RuntimeTypeModel.Default.Deserialize(new MemoryStream(buf), null, DemParser.EmbeddedTypeMap[kind]);
 
                 messages.AddLast(message);
             }
 
-            object[] array = new object[messages.Count];
+            var array = new object[messages.Count];
             messages.CopyTo(array, 0);
             return array;
         }
@@ -181,13 +175,13 @@ namespace Eaglesong
         public static ulong ReadVarInt(Stream fs)
         {
             ulong result = 0;
-            int shift = 0;
+            var shift = 0;
 
-            int max = sizeof(long) * 8;
+            const int max = sizeof(long) * 8;
             while (shift < max)
             {
-                byte b = (byte)fs.ReadByte();
-                ulong temp = (ulong)(b & 0x7f);
+                var b = (byte)fs.ReadByte();
+                var temp = (ulong)(b & 0x7f);
                 result |= temp << shift;
 
                 if ((b & 0x80) != 0x80)
@@ -202,7 +196,7 @@ namespace Eaglesong
         }
 
 
-        private void PrintMessage(object message, ulong kind, ulong tick, ulong size, byte[] buf, bool isCompressed)
+        private static void PrintMessage(object message, ulong kind, ulong tick, ulong size, byte[] buf, bool isCompressed)
         {
 #if DEBUG
             Console.WriteLine("==== #{0}: Tick:{1} '{2}' Size:{3} UncompressedSize:{4} ====", Messages.Count, tick, BaseTypeMap[kind], size, isCompressed ? buf.Length : 0);
@@ -276,7 +270,7 @@ namespace Eaglesong
 #endif
         }
 
-        private void PrintEmbeddedMessage(dota2.BaseWithEmbedded message)
+        private void PrintEmbeddedMessage(dota2.IBaseWithEmbedded message)
         {
 #if DEBUG
             foreach (object embedded in message.EmbeddedMessages)
