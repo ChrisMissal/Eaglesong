@@ -112,6 +112,29 @@ namespace Eaglesong
         }
 
         /// <summary>
+        /// Reads in a long int
+        /// </summary>
+        /// <returns></returns>
+        public long ReadLong()
+        {
+            var res = 0L;
+            for (var i = 0; i < 64; i++)
+            {
+                res |= (this.Bits[this.Position++] ? 1 : 0) << i;
+            }
+            return res;
+        }
+
+        /// <summary>
+        /// Reads in a 32-bit integer
+        /// </summary>
+        /// <returns></returns>
+        public int ReadInt()
+        {
+            return this.ReadBits(32);
+        }
+
+        /// <summary>
         /// Seeks through the stream relative to the origin
         /// </summary>
         /// <param name="bitOffset"></param>

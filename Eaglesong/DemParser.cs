@@ -1,6 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using dota2;
+using Newtonsoft.Json.Converters;
+using ProtoBuf.Meta;
 
 namespace Eaglesong
 {
@@ -11,6 +15,8 @@ namespace Eaglesong
         private readonly Dictionary<ParserPhase, LinkedList<object>> _messages = new Dictionary<ParserPhase, LinkedList<object>>();
 
         private readonly OrderedDictionary<StringTable> _stringTables = new OrderedDictionary<StringTable>();
+
+        private readonly List<dota2.CDOTAModifierBuffTableEntry> _activeModfierEntries = new List<CDOTAModifierBuffTableEntry>(); 
 
         public ParserPhase Phase { get; private set; }
 
@@ -54,15 +60,17 @@ namespace Eaglesong
                         var msgBase = msg as dota2.IBaseWithEmbedded;
                         foreach (object inner in msgBase.EmbeddedMessages)
                         {
+                            StringTable t;
                             if (inner is dota2.CSVCMsg_CreateStringTable)
                             {
-                                var t = new StringTable((dota2.CSVCMsg_CreateStringTable)inner);
+                                t = new StringTable((dota2.CSVCMsg_CreateStringTable)inner);
                                 this._stringTables.Add(t.Name, t);
+                                this.HandleTable(t);
                             }
                             else if (inner is dota2.CSVCMsg_UpdateStringTable)
                             {
                                 var ust = (dota2.CSVCMsg_UpdateStringTable)inner;
-                                StringTable t = this._stringTables[ust.table_id];
+                                t = this._stringTables[ust.table_id];
                                 t.Update(ust);
                             }
                         }
@@ -72,6 +80,31 @@ namespace Eaglesong
             }
 
             return this._messages;
+        }
+
+        private void HandleTable(StringTable table)
+        {
+            string name = table.Name.ToLower();
+            IEnumerable<StringTableRow> rows = table.Rows.Where(kvp => (kvp.Value.Value != null && kvp.Value.Value.Length > 0)).Select(kvp => kvp.Value);
+            if (name == "activemodifiers")
+            {
+                foreach (StringTableRow row in rows)
+                {
+                    this._activeModfierEntries.Add((dota2.CDOTAModifierBuffTableEntry)RuntimeTypeModel.Default.Deserialize(new MemoryStream(row.Value), null, typeof(dota2.CDOTAModifierBuffTableEntry)));
+                }
+            }
+            else if (name == "userinfo")
+            {
+                var list = new List<UserInfo>();
+                foreach (StringTableRow row in rows)
+                {
+                    list.Add(UserInfo.ParseUserInfo(row.Value));
+                }
+            }
+            else if (name == "instancebaseline")
+            {
+                
+            }
         }
 
         private static readonly Dictionary<ulong, Type> BaseTypeMap = new Dictionary<ulong, Type>
@@ -135,7 +168,7 @@ namespace Eaglesong
                 buf = Snappy.SnappyCodec.Uncompress(buf);
             }
 
-            object message = ProtoBuf.Meta.RuntimeTypeModel.Default.Deserialize(new MemoryStream(buf), null, DemParser.BaseTypeMap[kind]);
+            object message = RuntimeTypeModel.Default.Deserialize(new MemoryStream(buf), null, DemParser.BaseTypeMap[kind]);
             DemParser.PrintMessage(message, kind, tick, size, buf, isCompressed);
             return message;
         }
@@ -157,7 +190,7 @@ namespace Eaglesong
                 var buf = new byte[size];
                 fs.Read(buf, 0, (int)size);
 
-                object message = ProtoBuf.Meta.RuntimeTypeModel.Default.Deserialize(new MemoryStream(buf), null, DemParser.EmbeddedTypeMap[kind]);
+                object message = RuntimeTypeModel.Default.Deserialize(new MemoryStream(buf), null, DemParser.EmbeddedTypeMap[kind]);
 
                 messages.AddLast(message);
             }

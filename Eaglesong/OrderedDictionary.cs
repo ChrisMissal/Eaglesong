@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Eaglesong
 {
@@ -41,7 +42,7 @@ namespace Eaglesong
         /// <returns></returns>
         public IEnumerator GetEnumerator()
         {
-            return this._keys.GetEnumerator();
+            return this._keys.Select(s => new KeyValuePair<string, T>(s, this._list[s])).GetEnumerator();
         }
     }
 }

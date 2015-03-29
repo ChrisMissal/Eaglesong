@@ -17,7 +17,7 @@ namespace Eaglesong
 
         private const int KeyHistorySize = 32;
         private const int MaxNameLength = 0x400;
-        private Dictionary<int, StringTableRow> _rows;
+        public Dictionary<int, StringTableRow> Rows;
 
         public StringTable(dota2.CSVCMsg_CreateStringTable msg)
         {
@@ -38,7 +38,7 @@ namespace Eaglesong
         /// <param name="stringData"></param>
         private void Create(byte[] stringData)
         {
-            this._rows = this.ParseTable(stringData, this.NumEntries);
+            this.Rows = this.ParseTable(stringData, this.NumEntries);
         }
 
         /// <summary>
@@ -158,22 +158,22 @@ namespace Eaglesong
         {
             get
             {
-                return this._rows[i];
+                return this.Rows[i];
             }
             private set
             {
-                this._rows[i] = value;
+                this.Rows[i] = value;
             }
         }
 
         public IEnumerator GetEnumerator()
         {
-            return this._rows.GetEnumerator();
+            return this.Rows.GetEnumerator();
         }
 
         public override string ToString()
         {
-            return String.Format("[StringTable(\"{0}\", {1})", this.Name, this._rows.Count);
+            return String.Format("[StringTable(\"{0}\", {1})", this.Name, this.Rows.Count);
         }
 
         private class KeyHistory
