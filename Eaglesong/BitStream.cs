@@ -165,5 +165,19 @@ namespace Eaglesong
 
             this.Position = newPos;
         }
+
+        public static string ReadString(byte[] buf, int offset)
+        {
+            var str = "";
+            for (int i = offset; i < buf.Length; i++)
+            {
+                if (buf[i] == 0)
+                {
+                    return str;
+                }
+                str += (char) buf[i];
+            }
+            throw new ArgumentException("No string terminator found.");
+        }
     }
 }

@@ -4,8 +4,12 @@ using Newtonsoft.Json;
 
 // Extends the auto-generated protobuf classes
 // ReSharper disable CheckNamespace
+// ReSharper disable UnusedMemberInSuper.Global
+// ReSharper disable UnusedMember.Global
+// ReSharper disable ArrangeThisQualifier
+// ReSharper disable InconsistentNaming
+// ReSharper disable EmptyConstructor
 namespace dota2
-// ReSharper restore CheckNamespace
 {
     /// <summary>
     /// an interface to required classes to make it easier to parse their embedded data
@@ -78,7 +82,7 @@ namespace dota2
     /// The signon packets are the same as normal packets - this is just a direct copy from the generated class
     /// </summary>
     [global::System.Serializable, global::ProtoBuf.ProtoContract(Name = @"CDemoSignonPacket")]
-    public partial class CDemoSignonPacket : IBaseWithEmbedded, global::ProtoBuf.IExtensible
+    public class CDemoSignonPacket : IBaseWithEmbedded, global::ProtoBuf.IExtensible
     {
         public CDemoSignonPacket() { }
 
@@ -98,7 +102,7 @@ namespace dota2
             get { return _sequence_out_ack; }
             set { _sequence_out_ack = value; }
         }
-        private byte[] _data = null;
+        private byte[] _data;
         [global::ProtoBuf.ProtoMember(3, IsRequired = false, Name = @"data", DataFormat = global::ProtoBuf.DataFormat.Default)]
         [global::System.ComponentModel.DefaultValue(null)]
         public byte[] data
@@ -152,3 +156,9 @@ namespace dota2
         }
     }
 }
+// ReSharper restore CheckNamespace
+// ReSharper restore UnusedMemberInSuper.Global
+// ReSharper restore UnusedMember.Global
+// ReSharper restore ArrangeThisQualifier
+// ReSharper restore InconsistentNaming
+// ReSharper restore EmptyConstructor

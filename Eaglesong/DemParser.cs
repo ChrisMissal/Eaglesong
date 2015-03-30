@@ -44,7 +44,9 @@ namespace Eaglesong
 
                 while (fs.Position < fs.Length)
                 {
-                    object msg = this.ParseMessage(fs);
+                    object msg = DemParser.ParseMessage(fs);
+
+                    // special message handling
                     if (msg is dota2.CDemoSyncTick)
                     {
                         this.Phase = ParserPhase.Match;
@@ -72,9 +74,11 @@ namespace Eaglesong
                                 var ust = (dota2.CSVCMsg_UpdateStringTable)inner;
                                 t = this._stringTables[ust.table_id];
                                 t.Update(ust);
+                                this.HandleTable(t);
                             }
                         }
                     }
+
                     this._messages[this.Phase].AddLast(msg);
                 }
             }
@@ -82,31 +86,43 @@ namespace Eaglesong
             return this._messages;
         }
 
+        /// <summary>
+        /// Handles processing for specific tables
+        /// </summary>
+        /// <param name="table"></param>
         private void HandleTable(StringTable table)
         {
+            IEnumerable<KeyValuePair<int, StringTableRow>> lazyRowList = table.Rows.Where(kvp => (kvp.Value.Value != null && kvp.Value.Value.Length > 0));
+            List<KeyValuePair<int, StringTableRow>> rows; // the linq will lazy evaluate, but if we're modifying the rows then we will need to force the full evaluation
+
             string name = table.Name.ToLower();
-            IEnumerable<StringTableRow> rows = table.Rows.Where(kvp => (kvp.Value.Value != null && kvp.Value.Value.Length > 0)).Select(kvp => kvp.Value);
-            if (name == "activemodifiers")
+            switch (name)
             {
-                foreach (StringTableRow row in rows)
-                {
-                    this._activeModfierEntries.Add((dota2.CDOTAModifierBuffTableEntry)RuntimeTypeModel.Default.Deserialize(new MemoryStream(row.Value), null, typeof(dota2.CDOTAModifierBuffTableEntry)));
-                }
-            }
-            else if (name == "userinfo")
-            {
-                var list = new List<UserInfo>();
-                foreach (StringTableRow row in rows)
-                {
-                    list.Add(UserInfo.ParseUserInfo(row.Value));
-                }
-            }
-            else if (name == "instancebaseline")
-            {
-                
+                case "activemodifiers":
+                    rows = lazyRowList.ToList();
+                    foreach (KeyValuePair<int, StringTableRow> kvp in rows)
+                    {
+                        var entry = (dota2.CDOTAModifierBuffTableEntry) RuntimeTypeModel.Default.Deserialize(new MemoryStream(kvp.Value.Value), null, typeof (dota2.CDOTAModifierBuffTableEntry));
+                        table.Rows[kvp.Key] = new ActiveModifierRow(kvp.Value, entry);
+                        this._activeModfierEntries.Add(entry);
+                    }
+                    break;
+
+                case "userinfo":
+                    rows = lazyRowList.ToList();
+                    foreach (KeyValuePair<int, StringTableRow> kvp in rows)
+                    {
+                        table.Rows[kvp.Key] = new UserInfoRow(kvp.Value, UserInfo.ParseUserInfo(kvp.Value.Value));
+                    }
+                    break;
+
+                case "instancebaseline":
+                    // TODO
+                    break;
             }
         }
 
+#region TypeMaps
         private static readonly Dictionary<ulong, Type> BaseTypeMap = new Dictionary<ulong, Type>
         {
             {0, typeof(dota2.CDemoStop)},
@@ -146,13 +162,14 @@ namespace Eaglesong
             {27, typeof(dota2.CSVCMsg_TempEntities)},
             {30, typeof(dota2.CSVCMsg_GameEventList)}
         };
+#endregion
 
         /// <summary>
         /// Parses a base message and its embedded message (if required)
         /// </summary>
         /// <param name="fs"></param>
         /// <returns></returns>
-        public object ParseMessage(FileStream fs)
+        public static object ParseMessage(Stream fs)
         {
             ulong kind = DemParser.ReadVarInt(fs);
             ulong tick = DemParser.ReadVarInt(fs);

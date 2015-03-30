@@ -250,8 +250,10 @@ namespace Eaglesong
 
     public class StringTableRow
     {
-        public string Name { get; private set; }
-        public byte[] Value { get; private set; }
+        public string Name { get; protected set; }
+        public byte[] Value { get; protected set; }
+
+        protected StringTableRow() { }
 
         public StringTableRow(string name, byte[] value)
         {
@@ -267,6 +269,30 @@ namespace Eaglesong
                 len = this.Value.Length;
             }
             return String.Format("[StringTableRow(\"{0}\", {1})]", this.Name, len);
+        }
+    }
+
+    public class UserInfoRow : StringTableRow
+    {
+        public UserInfo Info { get; private set; }
+
+        public UserInfoRow(StringTableRow r, UserInfo u)
+        {
+            this.Name = r.Name;
+            this.Value = r.Value;
+            this.Info = u;
+        }
+    }
+
+    public class ActiveModifierRow : StringTableRow
+    {
+        public dota2.CDOTAModifierBuffTableEntry Modifier { get; private set; }
+
+        public ActiveModifierRow(StringTableRow r, dota2.CDOTAModifierBuffTableEntry mod)
+        {
+            this.Name = r.Name;
+            this.Value = r.Value;
+            this.Modifier = mod;
         }
     }
 }
