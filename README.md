@@ -8,7 +8,10 @@ Eaglesong is a fast replay parser for Dota2, written in .NET
 
 You can use Eaglesong by referencing the dll and get the list of messages:
 ```C#
-Dictionary<ParserPhase, LinkedList<object>> messages = Eaglesong.DemParser.Read("path-to-replay.dem");
+using Eaglesong;
+// then, later...
+DemParser parser = new DemParser();
+Dictionary<ParserPhase, LinkedList<object>> messages = parser.Read("path-to-replay.dem");
 ```
 Note that the messages are split by "phase": Prologue, Match and Epilogue
 
